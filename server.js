@@ -1,5 +1,6 @@
 const http = require("http");
 const app = require("./app/app");
+const studentsRouter = require("./routes/v1/students/students.router");
 require("dotenv").config();
 require("colors");
 // database connection

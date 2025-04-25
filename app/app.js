@@ -2,7 +2,7 @@ const express = require("express");
 const morgan = require("morgan");
 const routeSync = require("../handlers/routeSync.handler");
 const cors = require('cors')
-
+const studentsRouter = require("../routes/v1/students/students.router")
 // Initialize the Express application
 const app = express();
 // Middleware
@@ -22,10 +22,7 @@ routeSync(app, "students");
 app.get("/", (req, res) => {
   res.send("Server is running!");
 });
-
 // Handle invalid routes
-app.all("*", (req, res) => {
-  res.send("Invalid Route");
-});
+app.use("/api/v1", studentsRouter);
 
 module.exports = app;

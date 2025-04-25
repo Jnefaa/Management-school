@@ -21,7 +21,7 @@ const {
 // Create Student by Admin
 studentsRouter
   .route("/students/admin/register")
-  .post(isLoggedIn, isAdmin, adminRegisterStudentController);
+  .post( isLoggedIn, isAdmin, adminRegisterStudentController);
 
 // Student Login
 studentsRouter.route("/students/login").post(studentLoginController);
@@ -29,7 +29,7 @@ studentsRouter.route("/students/login").post(studentLoginController);
 // Get Student Profile
 studentsRouter
   .route("/students/profile")
-  .get(isLoggedIn, isStudent, getStudentProfileController);
+  .get(isLoggedIn, getStudentProfileController);
 
 // Get All Students by Admin
 studentsRouter
@@ -42,10 +42,10 @@ studentsRouter
   .get(isLoggedIn, isAdmin, getStudentByAdminController);
 
 // Update Student Profile by Student
-studentsRouter
+/** studentsRouter
   .route("/update")
   .patch(isLoggedIn, isStudent, studentUpdateProfileController);
-
+**/
 // Admin Update Student Profile
 studentsRouter
   .route("/:studentId/update/admin")

@@ -17,28 +17,23 @@ const responseStatus = require("../../handlers/responseStatus.handler");
 exports.createAcademicTermService = async (data, userId) => {
   const { name, description, duration } = data;
 
-  // Check if the academic term already exists
+  // Check if term exists
   const academicTerm = await AcademicTerm.findOne({ name });
   if (academicTerm) {
-    return responseStatus(res, 402, "failed", "Academic term already exists");
+    throw new Error("Academic term already exists");
   }
 
-  // Create the academic term
+  // Create new term
   const academicTermCreated = await AcademicTerm.create({
     name,
     description,
     duration,
-    createdBy: userId,
+    createdBy: userId
   });
 
-  // Push the academic term into the admin's academicTerms array
-  const admin = await Admin.findById(userId);
-  admin.academicTerms.push(academicTermCreated._id);
-  await admin.save();
-
-  // Send the response
-  return responseStatus(res, 200, "success", academicTermCreated);
+  return academicTermCreated;
 };
+
 
 /**
  * Get all academic terms service.

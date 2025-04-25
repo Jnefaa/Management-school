@@ -14,11 +14,15 @@ const {
  **/
 exports.createAcademicYearController = async (req, res) => {
   try {
-    await createAcademicYearService(req.body, req.userAuth.id, res);
+    const academicYear = await createAcademicYearService(req.body, req.userAuth.id);
+    responseStatus(res, 201, "success", academicYear);
   } catch (error) {
-    responseStatus(res, 400, "failed", error.message);
+    const statusCode = error.message.includes("already exists") ? 409 : 
+                      error.message.includes("not found") ? 404 : 400;
+    responseStatus(res, statusCode, "failed", error.message);
   }
 };
+
 
 /**
  * @desc Get all Academic Years
@@ -55,11 +59,23 @@ exports.getAcademicYearController = async (req, res) => {
  **/
 exports.updateAcademicYearController = async (req, res) => {
   try {
-    await updateAcademicYearService(req.body, req.params.id, req.userAuth.id);
+    const updatedYear = await updateAcademicYearService(
+      req.body, 
+      req.params.id, 
+      req.userAuth.id
+    );
+    
+    if (!updatedYear) {
+      return responseStatus(res, 404, "failed", "Academic year not found");
+    }
+    
+    responseStatus(res, 200, "success", updatedYear);
   } catch (error) {
-    responseStatus(res, 400, "failed", error.message);
+    const statusCode = error.message.includes("already exists") ? 409 : 400;
+    responseStatus(res, statusCode, "failed", error.message);
   }
 };
+
 
 /**
  * @desc Delete Academic Year

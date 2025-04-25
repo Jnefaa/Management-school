@@ -15,30 +15,38 @@ const responseStatus = require("../../handlers/responseStatus.handler");
  * @returns {Object} - The response object indicating success or failure.
  */
 exports.createProgramService = async (data, userId) => {
-  const { name, description } = data;
+  try {
+    const { name, description } = data;
 
-  // Check if the program already exists
-  const programFound = await Program.findOne({ name });
-  if (programFound) {
-    return responseStatus(res, 402, "failed", "Program already exists");
+    // Check if program exists
+    const programFound = await Program.findOne({ name });
+    if (programFound) {
+      throw new Error('Program already exists');
+    }
+
+    // Create program
+    const programCreated = await Program.create({
+      name,
+      description,
+      createdBy: userId
+    });
+
+    // Update admin's programs
+    const admin = await Admin.findById(userId);
+    if (!admin) {
+      throw new Error('Admin not found');
+    }
+    
+    admin.programs.push(programCreated._id);
+    await admin.save();
+
+    return programCreated;
+
+  } catch (error) {
+    throw error; // Let controller handle the response
   }
-
-  // Create the program
-  const programCreated = await Program.create({
-    name,
-    description,
-    createdBy: userId,
-  });
-
-  // Push the program into the admin's programs array
-  const admin = await Admin.findById(userId);
-  admin.programs.push(programCreated._id);
-  // Save the changes
-  await admin.save();
-
-  // Send the response
-  return responseStatus(res, 200, "success", programCreated);
 };
+
 
 /**
  * Get all programs service.

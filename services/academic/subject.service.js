@@ -4,6 +4,8 @@ const Subject = require("../../models/Academic/subject.model");
 const Program = require("../../models/Academic/program.model");
 // Import responseStatus handler
 const responseStatus = require("../../handlers/responseStatus.handler");
+const AcademicTerm = require('../../models/Academic/academicTerm.model'); // Add this import
+const Admin = require('../../models/Staff/admin.model');
 
 /**
  * Create Subject service.
@@ -17,34 +19,53 @@ const responseStatus = require("../../handlers/responseStatus.handler");
  * @returns {Object} - The response object indicating success or failure.
  */
 exports.createSubjectService = async (data, programId, userId) => {
-  const { name, description, academicTerm } = data;
+  try {
+    const { name, description, academicTermId, duration } = data;
 
-  // Find the program
-  const programFound = await Program.findById(programId);
-  if (!programFound)
-    return responseStatus(res, 402, "failed", "Program not found");
+    // Validate input
+    if (!academicTermId) {
+      throw new Error('Academic term ID is required');
+    }
 
-  // Check if the Subject already exists
-  const SubjectFound = await Subject.findOne({ name });
-  if (SubjectFound) {
-    return responseStatus(res, 402, "failed", "Subject already exists");
+    // Validate all references exist
+    const [program, academicTerm, admin] = await Promise.all([
+      Program.findById(programId),
+      AcademicTerm.findById(academicTermId), // Now properly defined
+      Admin.findById(userId)
+    ]);
+
+    if (!program) throw new Error('Program not found');
+    if (!academicTerm) throw new Error('Academic term not found');
+    if (!admin) throw new Error('Admin not found');
+
+    // Check for duplicate subject
+    const existingSubject = await Subject.findOne({ name });
+    if (existingSubject) {
+      throw new Error('Subject already exists');
+    }
+
+    // Create subject with proper references
+    const subject = await Subject.create({
+      name,
+      description,
+      academicTerm: academicTerm._id, // Use the validated term
+      createdBy: admin._id,
+      duration: duration || "3 months"
+    });
+
+    // Update program's subjects
+    program.subjects.push(subject._id);
+    await program.save();
+
+    return subject;
+
+  } catch (error) {
+    console.error('Subject creation error:', error);
+    throw error;
   }
-
-  // Create the Subject
-  const SubjectCreated = await Subject.create({
-    name,
-    description,
-    academicTerm,
-    createdBy: userId,
-  });
-
-  // Push the object ID to program
-  programFound.subjects.push(SubjectCreated._id);
-  await programFound.save();
-
-  // Send the response
-  return responseStatus(res, 200, "success", SubjectCreated);
 };
+
+
 
 /**
  * Get all Subjects service.

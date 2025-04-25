@@ -16,12 +16,20 @@ const {
  * @access Private Admin only
  **/
 exports.adminRegisterStudentController = async (req, res) => {
+  console.log("➡️ Request reached controller"); // Debug 1
   try {
-    await adminRegisterStudentService(req.body, req.userAuth.id, res);
+    console.log("📦 Request body:", req.body); // Debug 2
+    
+    // Use the service layer instead of direct model access
+    await adminRegisterStudentService(req.body, req.userAuth?.id, res);
+    
   } catch (error) {
-    responseStatus(res, 400, "failed", error.message);
+    console.error("❌ Controller error:", error); // Debug 4
+    return res.status(400).json({ error: error.message });
   }
 };
+
+
 
 /**
  * @desc Login student
@@ -30,11 +38,16 @@ exports.adminRegisterStudentController = async (req, res) => {
  **/
 exports.studentLoginController = async (req, res) => {
   try {
+    // Add validation
+    if (!req.body.email || !req.body.password) {
+      return responseStatus(res, 400, "failed", "Email and password are required");
+    }
     await studentLoginService(req.body, res);
   } catch (error) {
     responseStatus(res, 400, "failed", error.message);
   }
 };
+
 
 /**
  * @desc Student Profile
@@ -43,6 +56,8 @@ exports.studentLoginController = async (req, res) => {
  **/
 exports.getStudentProfileController = async (req, res) => {
   try {
+    // Add validation
+   
     await getStudentsProfileService(req.userAuth.id, res);
   } catch (error) {
     responseStatus(res, 400, "failed", error.message);
@@ -56,11 +71,12 @@ exports.getStudentProfileController = async (req, res) => {
  **/
 exports.getAllStudentsByAdminController = async (req, res) => {
   try {
-    await getAllStudentsByAdminService(req.userAuth.id, res);
+    await getAllStudentsByAdminService(res);  // ✅ Only pass `res`
   } catch (error) {
-    responseStatus(res, 400, "failed", error.message);
+    responseStatus(res, 400, "failed rrrr", error.message);
   }
 };
+
 
 /**
  * @desc Get Single Student
@@ -69,12 +85,15 @@ exports.getAllStudentsByAdminController = async (req, res) => {
  **/
 exports.getStudentByAdminController = async (req, res) => {
   try {
-    const result = await getStudentByAdminService(req.userAuth.id);
-    responseStatus(res, 200, "success", result);
+    const studentId = req.params.studentId; // Get from route parameter
+    const student = await getStudentByAdminService(studentId);
+    responseStatus(res, 200, "success", student);
   } catch (error) {
-    responseStatus(res, 400, "failed", error.message);
+    const statusCode = error.message === "Student not found" ? 404 : 400;
+    responseStatus(res, statusCode, "failed", error.message);
   }
 };
+
 
 /**
  * @desc Student updating profile
@@ -96,11 +115,17 @@ exports.studentUpdateProfileController = async (req, res) => {
  **/
 exports.adminUpdateStudentController = async (req, res) => {
   try {
-    await adminUpdateStudentService(req.body, req.params.studentId);
+    const updatedStudent = await adminUpdateStudentService(
+      req.body, 
+      req.params.studentId
+    );
+    responseStatus(res, 200, "success", updatedStudent);
   } catch (error) {
-    responseStatus(res, 400, "failed", error.message);
+    const statusCode = error.message === "Student not found" ? 404 : 400;
+    responseStatus(res, statusCode, "failed", error.message);
   }
 };
+
 
 /**
  * @desc Students taking exams

@@ -14,11 +14,20 @@ const {
  **/
 exports.createProgramController = async (req, res) => {
   try {
-    await createProgramService(req.body, req.userAuth.id, res);
+    const newProgram = await createProgramService(req.body, req.userAuth.id);
+    responseStatus(res, 201, 'success', {
+      message: 'Program created successfully',
+      data: newProgram
+    });
   } catch (error) {
-    responseStatus(res, 400, "failed", error.message);
+    const statusCode = error.message.includes('already exists') ? 409 : 
+                      error.message.includes('not found') ? 404 : 
+                      400;
+    responseStatus(res, statusCode, 'failed', error.message);
   }
 };
+
+
 
 /**
  * @desc Get all programs

@@ -15,7 +15,7 @@ const responseStatus = require("../../handlers/responseStatus.handler");
  * @param {Object} res - Express response object
  * @returns {Object} - Response object indicating success or failure
  */
-exports.createTeacherServices = async (data, adminId, res) => {
+exports.createTeacherService = async (data, adminId, res) => {
   const { name, email, password } = data;
 
   // Check if the teacher already exists

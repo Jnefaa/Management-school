@@ -14,11 +14,14 @@ const {
  **/
 exports.createAcademicTermController = async (req, res) => {
   try {
-    createAcademicTermService(req.body, req.userAuth.id, res);
+    const academicTerm = await createAcademicTermService(req.body, req.userAuth.id);
+    responseStatus(res, 201, "success", academicTerm);
   } catch (error) {
-    responseStatus(res, 400, "failed", error.message);
+    const statusCode = error.message.includes("already exists") ? 409 : 400;
+    responseStatus(res, statusCode, "failed", error.message);
   }
 };
+
 
 /**
  * @desc Get all Academic Terms

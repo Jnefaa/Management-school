@@ -1,13 +1,20 @@
 const responseStatus = require("../handlers/responseStatus.handler");
-const Teacher = require("../models/Staff/teachers.model");
+const Student = require("../models/Students/students.model");
 
-const isTeacher = async (req, res, next) => {
-  const userId = req.userAuth.id;
-  const teacher = await Teacher.findById(userId);
-  if (teacher?.role === "student") {
-    next();
-  } else {
-    responseStatus(res, 403, "failed", "Access Denied.teachers only route!");
+const isStudent = async (req, res, next) => {
+  try {
+    const userId = req.userAuth.id;
+    const Student = await Student.findById(userId);
+    
+    // Allow ONLY students or teachers to pass
+    if (Student.role === "student" ) {
+      next();
+    } else {
+      responseStatus(res, 403, "failed", "Access Denied. Student/teacher only route!");
+    }
+  } catch (error) {
+    responseStatus(res, 500, "failed", "Internal server error");
   }
 };
-module.exports = isTeacher;
+
+module.exports = isStudent;

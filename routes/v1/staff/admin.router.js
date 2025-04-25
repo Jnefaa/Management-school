@@ -20,13 +20,13 @@ const isAdmin = require("../../../middlewares/isAdmin");
 // register
 adminRouter
   .route("/admin/register")
-  .post(isLoggedIn, isAdmin, registerAdminController);
+  .post( registerAdminController);
 //  login
 adminRouter.route("/admin/login").post(loginAdminController);
 // get all admin
 adminRouter.route("/admins").get(isLoggedIn, isAdmin, getAdminsController);
 //get current admin profile
-adminRouter.route("/admin/profile").get(isLoggedIn, getAdminProfileController);
+adminRouter.route("/admin/profile").get(isLoggedIn,isAdmin, getAdminProfileController);
 // update/delete admin
 adminRouter
   .route("/admin/:id")

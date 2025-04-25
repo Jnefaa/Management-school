@@ -26,11 +26,11 @@ teachersRouter
 // get teacher profile
 teachersRouter
   .route("/teacher/:teacherId/profile")
-  .get(isLoggedIn, isTeacher, getTeacherProfileController);
+  .get(isLoggedIn, isAdmin, getTeacherProfileController);
 // teacher update own profile
 teachersRouter
   .route("/teacher/update-profile")
-  .patch(isLoggedIn, isTeacher, updateTeacherProfileController);
+  .patch(isLoggedIn, isAdmin, updateTeacherProfileController);
 // admin update user profile
 teachersRouter
   .route("/teacher/:teachersId/update-profile")

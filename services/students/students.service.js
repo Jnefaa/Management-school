@@ -22,29 +22,42 @@ const { resultCalculate } = require("../../functions/resultCalculate.function");
  */
 exports.adminRegisterStudentService = async (data, adminId, res) => {
   const { name, email, password } = data;
-  // finding admin
+  
+  // 1. Verify admin exists
   const admin = await Admin.findById(adminId);
   if (!admin) {
-    return responseStatus(res, 405, "failed", "Unauthorized access!");
+    return responseStatus(res, 404, "failed", "Admin not found");
   }
-  //check if teacher already exists
-  const student = await Student.findOne({ email });
-  if (student)
-    return responseStatus(res, 402, "failed", "Student already enrolled");
 
-  //Hash password
+  // 2. Check if student already exists
+  const student = await Student.findOne({ email });
+  if (student) {
+    return responseStatus(res, 409, "failed", "Student already enrolled"); // 409 Conflict is more appropriate
+  }
+
+  // 3. Hash password
   const hashedPassword = await hashPassword(password);
-  // create
-  const studentRegistered = await Student.create({
+  
+  // 4. Create student
+  const newStudent = await Student.create({
     name,
     email,
     password: hashedPassword,
+    // You might want to add admin reference here
+    createdBy: adminId
   });
-  // saving to admin
-  admin.students.push(studentRegistered._id);
+
+  // 5. Add student to admin's students array and save admin
+  admin.students.push(newStudent._id);
   await admin.save();
-  return responseStatus(res, 200, "success", studentRegistered);
+
+  // 6. Return success response
+  return responseStatus(res, 201, "success", {
+    message: "Student registered successfully",
+    student: newStudent
+  });
 };
+
 /**
  * Student login service.
  *
@@ -56,19 +69,25 @@ exports.adminRegisterStudentService = async (data, adminId, res) => {
  */
 exports.studentLoginService = async (data, res) => {
   const { email, password } = data;
-  //find the  user
-  const student = await Student.findOne({ email }).select("-password ");
-  if (!student)
+  
+  // Find the user WITH password
+  const student = await Student.findOne({ email }).select("+password"); // Note the +
+  if (!student) {
     return responseStatus(res, 402, "failed", "Invalid login credentials");
+  }
 
-  //verify the password
-  const isMatched = await isPassMatched(password, student?.password);
-  if (!isMatched)
+  // Verify the password
+  const isMatched = await isPassMatched(password, student.password);
+  if (!isMatched) {
     return responseStatus(res, 401, "failed", "Invalid login credentials");
+  }
 
+  // Remove password before sending response
+  student.password = undefined;
   const responseData = { student, token: generateToken(student._id) };
   return responseStatus(res, 200, "success", responseData);
 };
+
 /**
  * Get student profile service.
  *
@@ -88,10 +107,15 @@ exports.getStudentsProfileService = async (id, res) => {
  *
  * @returns {Array} - An array of all students.
  */
-exports.getAllStudentsByAdminService = async () => {
-  const result = await Student.find({});
-  return responseStatus(res, 200, "success", result);
+exports.getAllStudentsByAdminService = async (res) => {
+  try {
+    const students = await Student.find({});
+    responseStatus(res, 200, "success", students);  // ✅ Correctly uses `res`
+  } catch (error) {
+    responseStatus(res, 500, "failed", "Internal server error");
+  }
 };
+
 /**
  * Get a single student by admin.
  *
@@ -99,11 +123,12 @@ exports.getAllStudentsByAdminService = async () => {
  * @param {Object} res - The Express response object.
  * @returns {Object} - The response object indicating success or failure.
  */
-exports.getStudentByAdminService = async (studentID, res) => {
+exports.getStudentByAdminService = async (studentID) => {
   const student = await Student.findById(studentID);
-  if (!student) return responseStatus(res, 402, "failed", "Student not found");
-  return responseStatus(res, 200, "success", student);
+  if (!student) throw new Error("Student not found");
+  return student; // Return data instead of response
 };
+
 /**
  * Student update profile service.
  *
@@ -159,15 +184,11 @@ exports.studentUpdateProfileService = async (data, userId, res) => {
  * @param {Object} res - The Express response object.
  * @returns {Object} - The response object indicating success or failure.
  */
-exports.adminUpdateStudentService = async (data, studentId, res) => {
+exports.adminUpdateStudentService = async (data, studentId) => {
   const { classLevels, academicYear, program, name, email, prefectName } = data;
 
-  //find the student by id
-  const studentFound = await Student.findById(studentId, res);
-  if (!studentFound)
-    return responseStatus(res, 402, "failed", "Student not found");
-  //update
-  const studentUpdated = await Student.findByIdAndUpdate(
+  // Find and update in one operation
+  const updatedStudent = await Student.findByIdAndUpdate(
     studentId,
     {
       $set: {
@@ -178,15 +199,17 @@ exports.adminUpdateStudentService = async (data, studentId, res) => {
         prefectName,
       },
       $addToSet: {
-        classLevels,
+        classLevels: { $each: classLevels || [] },
       },
     },
-    {
-      new: true,
-    }
+    { new: true, runValidators: true }
   );
-  //send response
-  return responseStatus(res, 200, "success", studentUpdated);
+
+  if (!updatedStudent) {
+    throw new Error("Student not found");
+  }
+
+  return updatedStudent;
 };
 /**
  * Student write exam service.

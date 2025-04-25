@@ -14,11 +14,14 @@ const {
  **/
 exports.createClassLevelController = async (req, res) => {
   try {
-    await createClassLevelService(req.body, req.userAuth.id, res);
+    const newClass = await createClassLevelService(req.body, req.userAuth.id);
+    responseStatus(res, 201, "success", newClass); // 201 for successful creation
   } catch (error) {
-    responseStatus(res, 400, "failed", error.message);
+    const statusCode = error.message.includes("already exists") ? 409 : 400;
+    responseStatus(res, statusCode, "failed", error.message);
   }
 };
+
 
 /**
  * @desc Get all Class Levels
@@ -55,16 +58,19 @@ exports.getClassLevelController = async (req, res) => {
  **/
 exports.updateClassLevelController = async (req, res) => {
   try {
-    await updateClassLevelService(
+    const updatedClass = await updateClassLevelService(
       req.body,
       req.params.id,
-      req.userAuth.id,
-      res
+      req.userAuth.id
     );
+    responseStatus(res, 200, "success", updatedClass);
   } catch (error) {
-    responseStatus(res, 400, "failed", error.message);
+    const statusCode = error.message.includes("already exists") ? 409 : 
+                      error.message.includes("not found") ? 404 : 400;
+    responseStatus(res, statusCode, "failed", error.message);
   }
 };
+
 
 /**
  * @desc Delete Class Level

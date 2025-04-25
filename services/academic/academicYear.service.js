@@ -2,6 +2,7 @@
 const AcademicYear = require("../../models/Academic/academicYear.model");
 // Import responseStatus handler
 const responseStatus = require("../../handlers/responseStatus.handler");
+const Admin = require("../../models/Staff/admin.model"); // Add this import
 
 /**
  * Create academic years service.
@@ -14,30 +15,39 @@ const responseStatus = require("../../handlers/responseStatus.handler");
  * @returns {Object} - The response object indicating success or failure.
  */
 exports.createAcademicYearService = async (data, userId) => {
-  const { name, fromYear, toYear } = data;
+  try {
+    const { name, fromYear, toYear } = data;
 
-  // Check if the academic year already exists
-  const academicYear = await AcademicYear.findOne({ name });
-  if (academicYear) {
-    return responseStatus(res, 402, "failed", "Academic year already exists");
+    // Check if academic year exists
+    const academicYearExists = await AcademicYear.findOne({ name });
+    if (academicYearExists) {
+      throw new Error("Academic year already exists");
+    }
+
+    // Create academic year
+    const academicYearCreated = await AcademicYear.create({
+      name,
+      fromYear,
+      toYear,
+      createdBy: userId,
+    });
+
+    // Update admin's academicYears array
+    const admin = await Admin.findById(userId);
+    if (!admin) {
+      throw new Error("Admin not found");
+    }
+    
+    admin.academicYears.push(academicYearCreated._id);
+    await admin.save();
+
+    return academicYearCreated;
+
+  } catch (error) {
+    throw error; // Let the controller handle the response
   }
-
-  // Create the academic year
-  const academicYearCreated = await AcademicYear.create({
-    name,
-    fromYear,
-    toYear,
-    createdBy: userId,
-  });
-
-  // Push the academic year into the admin's academicYears array
-  const admin = await Admin.findById(userId);
-  admin.academicYears.push(academicYearCreated._id);
-  await admin.save();
-
-  // Send the response
-  return responseStatus(res, 201, "success", academicYearCreated);
 };
+
 
 /**
  * Get all academic years service.
@@ -72,22 +82,29 @@ exports.getAcademicYearService = async (id) => {
 exports.updateAcademicYearService = async (data, academicId, userId) => {
   const { name, fromYear, toYear } = data;
 
-  // Check if the updated name already exists
-  const createAcademicYearFound = await AcademicYear.findOne({ name });
-  if (createAcademicYearFound) {
-    return responseStatus(res, 402, "failed", "Academic year already exists");
+  // Check if name exists (excluding current record)
+  const existingYear = await AcademicYear.findOne({ 
+    name, 
+    _id: { $ne: academicId } // Exclude current record from check
+  });
+  
+  if (existingYear) {
+    throw new Error("Academic year already exists");
   }
 
-  // Update the academic year
-  const academicYear = await AcademicYear.findByIdAndUpdate(
+  // Update and return the academic year
+  return await AcademicYear.findByIdAndUpdate(
     academicId,
-    { name, fromYear, toYear, createdBy: userId },
-    { new: true }
+    { 
+      name, 
+      fromYear, 
+      toYear, 
+      createdBy: userId 
+    },
+    { new: true, runValidators: true }
   );
-
-  // Send the response
-  return responseStatus(res, 201, "success", academicYear);
 };
+
 
 /**
  * Delete academic year service.

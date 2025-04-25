@@ -15,27 +15,28 @@ const responseStatus = require("../../handlers/responseStatus.handler");
 exports.createClassLevelService = async (data, userId) => {
   const { name, description } = data;
 
-  // Check if the class already exists
+  // Check if class exists
   const classFound = await ClassLevel.findOne({ name });
   if (classFound) {
-    return responseStatus(res, 400, "failed", "Class already exists");
+    throw new Error("Class already exists"); // Throw error instead of sending response
   }
 
-  // Create the class
+  // Create class
   const classCreated = await ClassLevel.create({
     name,
     description,
     createdBy: userId,
   });
 
-  // Push the class into the admin's classLevels array
+  // Update admin's classLevels array
   const admin = await Admin.findById(userId);
+  if (!admin) {
+    throw new Error("Admin not found");
+  }
   admin.classLevels.push(classCreated._id);
-  // Save the changes
   await admin.save();
 
-  // Send the response
-  return responseStatus(res, 200, "success", classCreated);
+  return classCreated; // Return data (let controller handle response)
 };
 
 /**
@@ -70,29 +71,33 @@ exports.getClassLevelsService = async (id) => {
 exports.updateClassLevelService = async (data, id, userId) => {
   const { name, description } = data;
 
-  // Check if the updated name already exists
-  const classFound = await ClassLevel.findOne({ name });
-  if (classFound) {
-    return responseStatus(res, 400, "failed", "Class already exists");
+  // Check if name exists (excluding current record)
+  const classExists = await ClassLevel.findOne({ 
+    name, 
+    _id: { $ne: id } // Exclude current record from check
+  });
+  
+  if (classExists) {
+    throw new Error("Class already exists"); // Throw error instead of sending response
   }
 
-  // Update the class
-  const classLevel = await ClassLevel.findByIdAndUpdate(
+  // Update and return the class level
+  const updatedClass = await ClassLevel.findByIdAndUpdate(
     id,
-    {
-      name,
-      description,
-      createdBy: userId,
+    { 
+      name, 
+      description, 
+      createdBy: userId 
     },
-    {
-      new: true,
-    }
+    { new: true, runValidators: true }
   );
 
-  // Send the response
-  return responseStatus(res, 200, "success", classLevel);
-};
+  if (!updatedClass) {
+    throw new Error("Class level not found");
+  }
 
+  return updatedClass; // Return data only
+};
 /**
  * Delete class data service.
  *
