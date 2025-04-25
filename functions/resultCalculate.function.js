@@ -7,7 +7,7 @@ exports.resultCalculate = async (questions, answers, exam) => {
   let remarks = "";
   let score = 0;
   let answeredQuestions = [];
-  //  looping through all the questions and finding the answers
+  //  looping through all the questions and finding answers
   for (let i = 0; i < questions.length; i++) {
     // single question
     const question = questions[i];

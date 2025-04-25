@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 require("dotenv").config();
 require("colors");
-
+//management database
 const dbConnect = async () => {
   await mongoose
     .connect(process.env.DB)
